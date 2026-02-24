@@ -316,7 +316,12 @@ cc-channel config set claude.defaultWorkDir ~/projects
 
 ## 配置
 
-配置文件存储在 `~/.cc-channel/config.json`。
+配置文件存储位置（由 `conf` 库管理）：
+- **macOS**: `~/Library/Preferences/cc-channel-nodejs/config.json`
+- **Linux**: `~/.config/cc-channel-nodejs/config.json`
+- **Windows**: `%APPDATA%\cc-channel-nodejs\Config\config.json`
+
+使用 `cc-channel config list` 可查看当前配置和配置文件路径。
 
 ### 配置示例
 
@@ -418,7 +423,12 @@ cc-channel stop
 npm uninstall -g cc-channel
 
 # 3. （可选）删除配置和会话数据
+# macOS:
+rm -rf ~/Library/Preferences/cc-channel-nodejs
 rm -rf ~/.cc-channel
+# Linux:
+# rm -rf ~/.config/cc-channel-nodejs
+# rm -rf ~/.cc-channel
 
 # 4. （macOS）删除 launchd 服务文件
 rm -f ~/Library/LaunchAgents/com.cc-channel.plist
@@ -588,7 +598,12 @@ When messaging the bot in Feishu:
 
 ## Configuration
 
-Configuration is stored in `~/.cc-channel/config.json`.
+Configuration file locations (managed by `conf` library):
+- **macOS**: `~/Library/Preferences/cc-channel-nodejs/config.json`
+- **Linux**: `~/.config/cc-channel-nodejs/config.json`
+- **Windows**: `%APPDATA%\cc-channel-nodejs\Config\config.json`
+
+Use `cc-channel config list` to view current configuration and config file path.
 
 ### Example Configuration
 
@@ -690,7 +705,12 @@ cc-channel stop
 npm uninstall -g cc-channel
 
 # 3. (Optional) Remove configuration and session data
+# macOS:
+rm -rf ~/Library/Preferences/cc-channel-nodejs
 rm -rf ~/.cc-channel
+# Linux:
+# rm -rf ~/.config/cc-channel-nodejs
+# rm -rf ~/.cc-channel
 
 # 4. (macOS) Remove launchd service file
 rm -f ~/Library/LaunchAgents/com.cc-channel.plist
