@@ -40,9 +40,9 @@ function getNodePath(): string {
 }
 
 function getDaemonScriptPath(): string {
-  // When installed globally, the daemon script is in the same directory as the CLI
-  const cliDir = join(__dirname, "..", "..");
-  return join(cliDir, "dist", "daemon.js");
+  // __dirname is dist/daemon/ (this file is dist/daemon/service.js)
+  // daemon.js is in dist/daemon.js
+  return join(__dirname, "..", "daemon.js");
 }
 
 /**
