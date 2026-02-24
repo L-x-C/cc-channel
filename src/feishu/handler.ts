@@ -8,6 +8,7 @@ import {
   replyToMessage,
   replyWithCard,
   MessageEvent,
+  sendTextMessage,
 } from "./client.js";
 import {
   getOrCreateSession,
@@ -23,6 +24,30 @@ import {
 
 const COMMAND_PREFIX = "/cc";
 
+// Track recently processed messages to prevent duplicates
+const processedMessages = new Map<string, number>();
+const MESSAGE_DEDUP_TTL = 60000; // 1 minute
+
+function isDuplicate(messageId: string): boolean {
+  const now = Date.now();
+  const lastProcessed = processedMessages.get(messageId);
+
+  if (lastProcessed && now - lastProcessed < MESSAGE_DEDUP_TTL) {
+    return true;
+  }
+
+  processedMessages.set(messageId, now);
+
+  // Clean up old entries
+  for (const [id, time] of processedMessages) {
+    if (now - time > MESSAGE_DEDUP_TTL) {
+      processedMessages.delete(id);
+    }
+  }
+
+  return false;
+}
+
 interface HandlerContext {
   client: Lark.Client;
   botOpenId: string;
@@ -35,6 +60,9 @@ export async function handleFeishuMessage(
   event: unknown,
   context: HandlerContext
 ): Promise<void> {
+  // Debug: log raw event
+  console.log("[Debug] Raw event:", JSON.stringify(event, null, 2));
+
   const messageEvent = parseMessageContent(event);
   if (!messageEvent) {
     console.error("Failed to parse message event");
@@ -42,6 +70,12 @@ export async function handleFeishuMessage(
   }
 
   const { messageId, chatId, senderId, content, msgType } = messageEvent;
+
+  // Skip duplicate messages
+  if (isDuplicate(messageId)) {
+    console.log(`[Skip] Duplicate message: ${messageId}`);
+    return;
+  }
 
   // Only handle text messages
   if (msgType !== "text") {
@@ -156,7 +190,7 @@ async function handleClaudeRequest(
   context: HandlerContext
 ): Promise<void> {
   const config = getClaudeConfig();
-  const session = getOrCreateSession(event.chatId);
+  const session = getOrCreateSession(event.chatId, config.defaultWorkDir);
 
   // Add user message to history
   addMessage(session, "user", prompt);
@@ -179,25 +213,36 @@ async function handleClaudeRequest(
     // Send response (truncate if too long for Feishu)
     const responseText = truncateForFeishu(result.output);
 
-    await replyWithCard(
-      context.client,
-      event.messageId,
-      responseText,
-      `✅ Completed (${formatDuration(result.duration)})`
-    );
+    console.log(`[Execute] Completed in ${result.duration}ms, sending reply...`);
+    console.log(`[Debug] Response length: ${responseText.length} chars`);
 
-    console.log(`[Execute] Completed in ${result.duration}ms`);
+    try {
+      await replyWithCard(
+        context.client,
+        event.messageId,
+        responseText,
+        `✅ Completed (${formatDuration(result.duration)})`
+      );
+      console.log(`[Reply] Sent successfully`);
+    } catch (replyError) {
+      console.error(`[Reply] Failed to send:`, replyError);
+    }
   } else {
     const errorText = result.error || result.output || "Unknown error";
 
-    await replyWithCard(
-      context.client,
-      event.messageId,
-      `❌ **Error**\n\n\`\`\`\n${truncateForFeishu(errorText, 3000)}\n\`\`\``,
-      "Execution Failed"
-    );
-
     console.error(`[Execute] Failed: ${errorText}`);
+
+    try {
+      await replyWithCard(
+        context.client,
+        event.messageId,
+        `❌ **Error**\n\n\`\`\`\n${truncateForFeishu(errorText, 3000)}\n\`\`\``,
+        "Execution Failed"
+      );
+      console.log(`[Reply] Error message sent successfully`);
+    } catch (replyError) {
+      console.error(`[Reply] Failed to send error message:`, replyError);
+    }
   }
 }
 

@@ -44,47 +44,63 @@ export function createEventDispatcher(config: FeishuConfig): Lark.EventDispatche
 
 /**
  * Parse message content from Feishu event
+ * The SDK passes the event directly as { sender, message }
  */
 export function parseMessageContent(event: unknown): MessageEvent | null {
   try {
+    // Debug: log the raw event structure
+    console.log("[Debug] Parsing event:", JSON.stringify(event, null, 2));
+
+    // The event from SDK is directly { sender, message }, not nested
     const data = event as {
-      event?: {
-        message?: {
-          message_id?: string;
-          chat_id?: string;
-          msg_type?: string;
-          content?: string;
-          create_time?: string;
-          sender?: {
-            sender_id?: {
-              open_id?: string;
-              user_id?: string;
-            };
-            sender_type?: string;
-          };
+      sender?: {
+        sender_id?: {
+          open_id?: string;
+          user_id?: string;
+          union_id?: string;
         };
-        sender?: {
-          sender_id?: {
-            open_id?: string;
-            user_id?: string;
-          };
-        };
+        sender_type?: string;
+        tenant_key?: string;
       };
-      event_context?: {
-        open_message_id?: string;
-        open_chat_id?: string;
+      message?: {
+        message_id?: string;
+        chat_id?: string;
+        msg_type?: string;
+        content?: string;
+        create_time?: string;
+        mentions?: Array<{
+          key: string;
+          id: { open_id?: string };
+          name: string;
+        }>;
       };
     };
 
-    const message = data?.event?.message;
-    if (!message) return null;
+    const message = data?.message;
+    const sender = data?.sender;
+
+    if (!message) {
+      console.log("[Debug] No message field in event");
+      return null;
+    }
 
     // Parse content based on message type
     let content = message.content ?? "";
-    if (message.msg_type === "text" && content) {
+    const msgType = message.msg_type ?? "text";
+
+    if (msgType === "text" && content) {
       try {
         const parsed = JSON.parse(content);
         content = parsed.text ?? content;
+      } catch {
+        // Keep raw content
+      }
+    } else if (msgType === "post" && content) {
+      try {
+        // Extract text from rich text post
+        const parsed = JSON.parse(content);
+        const textContent = extractPostText(parsed);
+        if (textContent) content = textContent;
       } catch {
         // Keep raw content
       }
@@ -93,18 +109,37 @@ export function parseMessageContent(event: unknown): MessageEvent | null {
     return {
       messageId: message.message_id ?? "",
       chatId: message.chat_id ?? "",
-      senderId:
-        message.sender?.sender_id?.open_id ??
-        data?.event?.sender?.sender_id?.open_id ??
-        "",
+      senderId: sender?.sender_id?.open_id ?? "",
       senderName: "", // Will be fetched separately if needed
       content,
-      msgType: message.msg_type ?? "text",
+      msgType,
       createTime: message.create_time ? parseInt(message.create_time, 10) : Date.now(),
     };
-  } catch {
+  } catch (err) {
+    console.error("[Debug] Parse error:", err);
     return null;
   }
+}
+
+/**
+ * Extract text content from Feishu post (rich text) message
+ */
+function extractPostText(post: {
+  zh_cn?: { content?: Array<Array<{ tag?: string; text?: string }>> };
+  en_us?: { content?: Array<Array<{ tag?: string; text?: string }>> };
+}): string {
+  const content = post.zh_cn?.content ?? post.en_us?.content ?? [];
+  const lines: string[] = [];
+
+  for (const paragraph of content) {
+    const text = paragraph
+      .filter((el) => el.tag === "text" || el.tag === "md")
+      .map((el) => el.text ?? "")
+      .join("");
+    if (text) lines.push(text);
+  }
+
+  return lines.join("\n");
 }
 
 /**

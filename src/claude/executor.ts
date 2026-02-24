@@ -26,10 +26,14 @@ export async function executeClaude(
     let output = "";
     let errorOutput = "";
 
+    // Create a clean environment, removing CLAUDECODE to allow nested execution
+    const cleanEnv = { ...process.env };
+    delete cleanEnv.CLAUDECODE;
+
     const child: ChildProcess = spawn("claude", ["--print", prompt], {
       cwd: options.workDir,
       env: {
-        ...process.env,
+        ...cleanEnv,
         // Ensure non-interactive mode
         CI: "true",
         TERM: "dumb",
@@ -116,8 +120,13 @@ Current request: ${currentPrompt}`;
  * Check if Claude CLI is available
  */
 export async function checkClaudeAvailable(): Promise<boolean> {
+  // Create a clean environment, removing CLAUDECODE
+  const cleanEnv = { ...process.env };
+  delete cleanEnv.CLAUDECODE;
+
   return new Promise((resolve) => {
     const child = spawn("claude", ["--version"], {
+      env: cleanEnv,
       stdio: "ignore",
     });
 
