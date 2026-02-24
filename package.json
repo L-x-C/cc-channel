@@ -1,6 +1,6 @@
 {
   "name": "cc-channel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Feishu/Lark channel for Claude Code - trigger Claude Code from Feishu messages",
   "type": "module",
   "main": "dist/index.js",
