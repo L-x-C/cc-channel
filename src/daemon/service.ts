@@ -1,5 +1,6 @@
 import { homedir, platform } from "os";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import {
   existsSync,
   writeFileSync,
@@ -7,6 +8,10 @@ import {
   unlinkSync,
   mkdirSync,
 } from "fs";
+
+// ES Module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const isMacOS = platform() === "darwin";
 const isLinux = platform() === "linux";
