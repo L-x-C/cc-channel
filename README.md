@@ -1,48 +1,50 @@
 # cc-channel
 
-> Feishu/Lark channel for Claude Code - trigger Claude Code from Feishu messages
+> 飞书/Lark 通道 for Claude Code - 通过飞书消息触发 Claude Code
 
-A lightweight service that lets you use Claude Code from Feishu/Lark. Send messages to your Feishu bot and get responses from Claude Code running on your local machine.
+一个轻量级服务，让你可以通过飞书/Lark 使用 Claude Code。向你的飞书机器人发送消息，即可获得运行在本地机器上的 Claude Code 的响应。
 
-## Features
+[English](#english-version)
 
-- 🚀 **Easy setup** - One command initialization
-- 💬 **Multi-turn conversations** - Maintains context across messages
-- 🔄 **Background service** - Runs as a daemon, no terminal needed
-- 📁 **Per-chat working directory** - Each chat can have its own working directory
-- 🌐 **WebSocket connection** - No public IP or port forwarding required
+## 功能特性
 
-## Prerequisites
+- 🚀 **简单安装** - 一条命令初始化
+- 💬 **多轮对话** - 跨消息保持上下文
+- 🔄 **后台服务** - 以守护进程运行，无需终端
+- 📁 **独立工作目录** - 每个会话可以有自己的工作目录
+- 🌐 **WebSocket 连接** - 无需公网 IP 或端口转发
+
+## 前置条件
 
 - Node.js 18+
-- [Claude Code CLI](https://claude.ai/code) installed and configured
-- A Feishu/Lark self-built application (see setup guide below)
+- 已安装并配置 [Claude Code CLI](https://claude.ai/code)
+- 飞书/Lark 自建应用（见下方配置指南）
 
-## Installation
+## 安装
 
 ```bash
 npm install -g cc-channel
 ```
 
-## Quick Start
+## 快速开始
 
-### Step 1: Create a Feishu Application
+### 第 1 步：创建飞书应用
 
-1. Go to [Feishu Open Platform](https://open.feishu.cn/app) (or [Lark Developer](https://open.larksuite.com/app) for international)
-2. Click "Create Self-built Application" (创建企业自建应用)
+1. 访问 [飞书开放平台](https://open.feishu.cn/app)（国际版使用 [Lark Developer](https://open.larksuite.com/app)）
+2. 点击"创建企业自建应用"
 
-![Create Application](pics/create_application.png)
+![创建应用](pics/create_application.png)
 
-### Step 2: Add Bot Capability
+### 第 2 步：添加机器人能力
 
-In the app settings, go to "App Capabilities" (应用能力) and add "Bot" (机器人):
+在应用设置中，进入"应用能力"，添加"机器人"：
 
-![Add Bot](pics/add_bot.png)
+![添加机器人](pics/add_bot.png)
 
-### Step 3: Configure Permissions
+### 第 3 步：配置权限
 
-1. Go to "Permission Management" (权限管理) → "Batch Import/Export Permissions" (批量导入/导出权限)
-2. Paste the following permission configuration:
+1. 进入"权限管理" → "批量导入/导出权限"
+2. 粘贴以下权限配置：
 
 ```json
 {
@@ -228,7 +230,279 @@ In the app settings, go to "App Capabilities" (应用能力) and add "Bot" (机�
 }
 ```
 
-3. Click "Apply for Activation" (申请开通) → "Confirm" (确认)
+3. 点击"申请开通" → "确认"
+
+### 第 4 步：创建版本
+
+创建版本来激活应用：
+
+![创建版本](pics/create_version.png)
+
+记录下应用凭证页面中的 **App ID** 和 **App Secret**。
+
+### 第 5 步：初始化 cc-channel
+
+回到终端执行：
+
+```bash
+cc-channel init
+```
+
+这将引导你完成：
+- 输入飞书 App ID 和 Secret
+- 设置默认工作目录
+- 测试连接
+- 启动后台服务
+
+### 第 6 步：配置事件订阅（WebSocket）
+
+1. 回到飞书开发者后台
+2. 进入"事件与回调" → "事件配置"
+3. 将"订阅方式"设置为"使用长连接接收事件"
+4. 点击"添加事件"，勾选"消息与群组"下的所有事件
+
+![回调配置](pics/callback.png)
+
+### 第 7 步：再次创建版本
+
+创建另一个版本来激活事件订阅配置。
+
+### 第 8 步：开始使用
+
+1. 将机器人添加到群聊，或与机器人发起单聊
+2. 发送任意消息即可触发 Claude Code！
+
+## 使用方法
+
+### 命令行
+
+```bash
+# 初始化配置
+cc-channel init
+
+# 启动后台服务
+cc-channel start
+
+# 前台运行（用于调试）
+cc-channel start --foreground
+
+# 停止后台服务
+cc-channel stop
+
+# 查看状态
+cc-channel status
+
+# 查看日志
+cc-channel logs
+cc-channel logs --follow
+
+# 配置管理
+cc-channel config list
+cc-channel config set claude.defaultWorkDir ~/projects
+```
+
+### 聊天内命令
+
+在飞书中与机器人对话时：
+
+| 命令 | 说明 |
+|------|------|
+| （任意消息） | 使用 Claude Code 执行 |
+| `/cc help` | 显示可用命令 |
+| `/cc cd <path>` | 更改工作目录 |
+| `/cc pwd` | 显示当前目录 |
+| `/cc clear` | 清除对话历史 |
+| `/cc status` | 显示会话状态 |
+
+## 配置
+
+配置文件存储在 `~/.cc-channel/config.json`。
+
+### 配置示例
+
+```json
+{
+  "feishu": {
+    "appId": "cli_xxxx",
+    "appSecret": "xxxx",
+    "verificationToken": "",
+    "encryptKey": "",
+    "domain": "feishu"
+  },
+  "claude": {
+    "defaultWorkDir": "~",
+    "timeout": 300000
+  }
+}
+```
+
+### 环境变量
+
+也可以通过环境变量配置：
+
+- `CC_CHANNEL_FEISHU_APP_ID`
+- `CC_CHANNEL_FEISHU_APP_SECRET`
+- `CC_CHANNEL_FEISHU_DOMAIN`
+- `CC_CHANNEL_WORK_DIR`
+
+## 工作原理
+
+```
+┌─────────────────┐     WebSocket      ┌─────────────────┐
+│   飞书机器人     │ ◄───────────────► │   cc-channel    │
+│   (云端)        │                    │   (本地)        │
+└─────────────────┘                    └────────┬────────┘
+                                                │
+                                                │ spawn
+                                                ▼
+                                       ┌─────────────────┐
+                                       │  Claude Code    │
+                                       │  CLI            │
+                                       └─────────────────┘
+```
+
+1. 你向飞书机器人发送消息
+2. 飞书通过 WebSocket 将事件推送到 cc-channel
+3. cc-channel 启动 Claude Code CLI 处理你的消息
+4. 响应被发送回飞书
+
+## 多轮对话
+
+cc-channel 为每个会话维护对话历史：
+
+- 每个会话（单聊或群聊）都有独立的 session
+- 上下文会被传递给 Claude Code 用于后续问题
+- 使用 `/cc clear` 开始新的对话
+
+## 安全注意事项
+
+- 只有能向你的飞书机器人发送消息的用户才能触发 Claude Code
+- 所有执行都在你的本地机器上进行
+- 会话数据存储在 `~/.cc-channel/sessions/`
+
+## 故障排除
+
+### Claude CLI 未找到
+
+```bash
+# 检查 claude 是否在 PATH 中
+which claude
+
+# 如果已安装但未找到，添加到 PATH
+export PATH="$PATH:$(dirname $(which claude))"
+```
+
+### 连接问题
+
+1. 验证 App ID 和 Secret 是否正确
+2. 确保在飞书应用设置中启用了 WebSocket 模式
+3. 检查日志：`cc-channel logs`
+
+### 服务无法启动
+
+```bash
+# 检查服务状态
+cc-channel status
+
+# 尝试前台运行查看错误
+cc-channel start --foreground
+```
+
+## 卸载
+
+```bash
+# 1. 停止后台服务
+cc-channel stop
+
+# 2. 卸载 npm 包
+npm uninstall -g cc-channel
+
+# 3. （可选）删除配置和会话数据
+rm -rf ~/.cc-channel
+
+# 4. （macOS）删除 launchd 服务文件
+rm -f ~/Library/LaunchAgents/com.cc-channel.plist
+```
+
+如果 `cc-channel stop` 无法正常工作：
+
+```bash
+# macOS: 手动卸载 launchd 服务
+launchctl bootout gui/$(id -u)/com.cc-channel 2>/dev/null
+
+# 然后卸载
+npm uninstall -g cc-channel
+```
+
+## 开发
+
+```bash
+# 克隆仓库
+git clone https://github.com/L-x-C/cc-channel.git
+cd cc-channel
+
+# 安装依赖
+npm install
+
+# 构建
+npm run build
+
+# 本地运行
+node dist/cli.js init
+```
+
+## 许可证
+
+MIT
+
+---
+
+# English Version
+
+> Feishu/Lark channel for Claude Code - trigger Claude Code from Feishu messages
+
+A lightweight service that lets you use Claude Code from Feishu/Lark. Send messages to your Feishu bot and get responses from Claude Code running on your local machine.
+
+## Features
+
+- 🚀 **Easy setup** - One command initialization
+- 💬 **Multi-turn conversations** - Maintains context across messages
+- 🔄 **Background service** - Runs as a daemon, no terminal needed
+- 📁 **Per-chat working directory** - Each chat can have its own working directory
+- 🌐 **WebSocket connection** - No public IP or port forwarding required
+
+## Prerequisites
+
+- Node.js 18+
+- [Claude Code CLI](https://claude.ai/code) installed and configured
+- A Feishu/Lark self-built application (see setup guide below)
+
+## Installation
+
+```bash
+npm install -g cc-channel
+```
+
+## Quick Start
+
+### Step 1: Create a Feishu Application
+
+1. Go to [Feishu Open Platform](https://open.feishu.cn/app) (or [Lark Developer](https://open.larksuite.com/app) for international)
+2. Click "Create Self-built Application"
+
+![Create Application](pics/create_application.png)
+
+### Step 2: Add Bot Capability
+
+In the app settings, go to "App Capabilities" and add "Bot":
+
+![Add Bot](pics/add_bot.png)
+
+### Step 3: Configure Permissions
+
+1. Go to "Permission Management" → "Batch Import/Export Permissions"
+2. Paste the permission configuration (see Chinese version above for full JSON)
+3. Click "Apply for Activation" → "Confirm"
 
 ### Step 4: Create First Version
 
@@ -255,9 +529,9 @@ This will guide you through:
 ### Step 6: Configure Event Subscription (WebSocket)
 
 1. Go back to Feishu Developer Console
-2. Navigate to "Events & Callbacks" (事件与回调) → "Event Configuration" (事件配置)
-3. Set "Subscription Method" (订阅方式) to "Use Long Connection" (使用长连接接收事件)
-4. Click "Add Event" (添加事件) and select all events under "Messages & Groups" (消息与群组)
+2. Navigate to "Events & Callbacks" → "Event Configuration"
+3. Set "Subscription Method" to "Use Long Connection"
+4. Click "Add Event" and select all events under "Messages & Groups"
 
 ![Callback Configuration](pics/callback.png)
 
