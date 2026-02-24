@@ -1,0 +1,54 @@
+{
+  "name": "cc-channel",
+  "version": "0.1.0",
+  "description": "Feishu/Lark channel for Claude Code - trigger Claude Code from Feishu messages",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "cc-channel": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "feishu",
+    "lark",
+    "chatbot"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/L-x-C/cc-channel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/L-x-C/cc-channel/issues"
+  },
+  "homepage": "https://github.com/L-x-C/cc-channel#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.29.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "conf": "^13.0.1",
+    "enquirer": "^2.4.1",
+    "ora": "^7.0.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.3.3"
+  }
+}
