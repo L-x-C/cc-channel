@@ -215,9 +215,31 @@ export async function startDaemon(): Promise<{ success: boolean; message: string
   if (isMacOS) {
     const { execSync } = await import("child_process");
     const plistPath = getLaunchAgentPath();
+    const uid = process.getuid?.() ?? "";
+
+    // First try to bootout in case service is in weird state
+    try {
+      execSync(`launchctl bootout gui/${uid} ${LAUNCH_AGENT_NAME}`, {
+        stdio: "ignore",
+      });
+    } catch {
+      // Ignore if not loaded
+    }
+
+    // Also try remove for cached entries with SIGKILL status
+    try {
+      execSync(`launchctl remove ${LAUNCH_AGENT_NAME}`, {
+        stdio: "ignore",
+      });
+    } catch {
+      // Ignore if not present
+    }
+
+    // Wait a moment for cleanup
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     try {
-      execSync(`launchctl bootstrap gui/${process.getuid?.() ?? ""} ${plistPath}`, {
+      execSync(`launchctl bootstrap gui/${uid} ${plistPath}`, {
         stdio: "pipe",
       });
 
@@ -266,12 +288,54 @@ export async function stopDaemon(): Promise<{ success: boolean; message: string 
   if (isMacOS) {
     const { execSync } = await import("child_process");
 
+    // Step 1: Kill daemon processes first (while launchd is still managing)
+    try {
+      execSync("pkill -9 -f 'node.*cc-channel.*daemon.js'", { stdio: "ignore" });
+    } catch {
+      // Ignore if no process to kill
+    }
+
+    // Step 2: Wait for processes to terminate
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Step 3: Bootout from launchd to stop managing
     try {
       execSync(`launchctl bootout gui/${process.getuid?.() ?? ""} ${LAUNCH_AGENT_NAME}`, {
         stdio: "ignore",
       });
     } catch {
-      // Ignore if not running
+      // Ignore if not loaded
+    }
+
+    // Step 3.5: Also remove cached entry (for SIGKILL'd services)
+    try {
+      execSync(`launchctl remove ${LAUNCH_AGENT_NAME}`, { stdio: "ignore" });
+    } catch {
+      // Ignore if not present
+    }
+
+    // Step 4: Verify process is stopped
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    let stillRunning = false;
+    try {
+      const result = execSync("pgrep -f 'node.*cc-channel.*daemon.js'", {
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe"],
+      });
+      stillRunning = result.toString().trim().length > 0;
+    } catch {
+      // pgrep returns non-zero when no match
+      stillRunning = false;
+    }
+
+    if (stillRunning) {
+    // Force kill any remaining
+    try {
+      execSync("pkill -9 -f 'node.*cc-channel.*daemon.js'", { stdio: "ignore" });
+    } catch {
+      // Ignore
+    }
     }
 
     return {
